@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/config";
 import { getMenuImageUrl } from "@/lib/supabase/storage";
 import { translateBatchToEnglish } from "@/lib/i18n/auto-translate";
+import { formatEurCurrency } from "@/lib/utils/currency";
 import type { CategoryWithItems, Settings } from "@/types/db";
 
 type Lang = "pt" | "en";
@@ -56,14 +57,6 @@ function buildCategoryHref(slug: string, lang: Lang, q?: string) {
 
 function buildMenuHref(lang: Lang) {
   return `/menu?lang=${lang}`;
-}
-
-function formatEur(value: number, lang: Lang) {
-  const locale = lang === "pt" ? "pt-PT" : "en-GB";
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "EUR",
-  }).format(value);
 }
 
 async function localizeCategories(categories: CategoryWithItems[], lang: Lang) {
@@ -276,7 +269,7 @@ export default async function MenuCategoryPage({ params, searchParams }: PagePro
                     <h2 className="text-lg font-bold text-zinc-900">{item.name}</h2>
                     {item.price !== null ? (
                       <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-bold text-zinc-900">
-                        {formatEur(Number(item.price), lang)}
+                        {formatEurCurrency(Number(item.price))}
                       </span>
                     ) : null}
                   </div>
