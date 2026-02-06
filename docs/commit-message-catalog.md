@@ -58,3 +58,5 @@ Tipos permitidos:
 4. Escreva primeiro o bloco completo em ingles e depois o bloco completo em pt-BR.
 5. Separe os blocos com `---`.
 6. Se mudar comportamento importante, detalhe no body (EN + PT-BR).
+7. Evite `git add -A` e `git add .`; prefira staging por arquivo/contexto.
+8. Prefira commits menores e tematicos (1 objetivo tecnico por commit).
