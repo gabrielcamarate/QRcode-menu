@@ -12,6 +12,7 @@ Padronizar versionamento com qualidade e evitar trabalho direto na `main`.
 6. Validacoes minimas antes de abrir PR:
    - `pnpm lint`
    - `pnpm build`
+7. Staging deve ser granular por contexto (arquivos especificos), sem `git add -A` e sem `git add .`.
 
 ## Padrao de branch
 Formato: `tipo/slug-curto`
@@ -98,12 +99,14 @@ Rollback:
 ## Fluxo recomendado
 1. Criar branch a partir da `main` atualizada.
 2. Implementar alteracoes.
-3. Rodar `pnpm lint` e `pnpm build`.
-4. Commitar com Conventional Commit.
-5. Push da branch.
-6. Abrir PR para `main` com resumo, evidencias e risco.
-7. Aguardar review e checks.
-8. Merge por squash.
+3. Agrupar arquivos por assunto tecnico (ex.: UI, backend, docs).
+4. Fazer staging por grupo com paths explicitos (`git add arquivo1 arquivo2`).
+5. Commitar cada grupo com Conventional Commit.
+6. Rodar `pnpm lint` e `pnpm build`.
+7. Push da branch.
+8. Abrir PR para `main` com resumo, evidencias e risco.
+9. Aguardar review e checks.
+10. Merge por squash.
 
 ## Gate minimo de PR
 - 1 aprovacao obrigatoria.

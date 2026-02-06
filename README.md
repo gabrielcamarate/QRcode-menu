@@ -2,7 +2,7 @@
 
 Aplicacao web de cardapio digital para restaurante, com experiencia mobile-first via QR Code.
 
-O visitante acessa o menu sem login e navega por categorias e itens.  
+O visitante acessa o menu sem login e navega por categorias e itens.
 O cliente administra o conteudo em painel protegido, com controle de categorias, itens, disponibilidade, ordenacao e imagens.
 
 ## Visao do Produto
@@ -50,3 +50,4 @@ O cliente administra o conteudo em painel protegido, com controle de categorias,
 - Especificacao do produto: `docs/project-spec.md`
 - Workflow de versionamento: `docs/git-workflow.md`
 - Catalogo de commits: `docs/commit-message-catalog.md`
+- Checklist de go-live: `docs/go-live-checklist.md`
