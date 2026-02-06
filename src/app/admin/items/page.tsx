@@ -1,42 +1,10 @@
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin-guard";
 import { uploadMenuImage, removeMenuImage } from "@/lib/supabase/storage";
 import { toSlug } from "@/lib/utils/slug";
 import PageHeader from "@/components/admin/page-header";
 
 export const dynamic = "force-dynamic";
-
-type PageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-
-function getFirstParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
-}
-
-function redirectWith(path: string, type: "success" | "error", message: string) {
-  const params = new URLSearchParams({ type, message });
-  redirect(`${path}?${params.toString()}`);
-}
-
-function validateImage(file: File | null) {
-  if (!file || file.size === 0) {
-    return null;
-  }
-
-  if (!file.type.startsWith("image/")) {
-    return "Arquivo invalido. Envie apenas imagem.";
-  }
-
-  if (file.size > MAX_IMAGE_SIZE) {
-    return "Imagem excede 5MB. Envie um arquivo menor.";
-  }
-
-  return null;
-}
 
 async function createItem(formData: FormData) {
   "use server";
@@ -50,36 +18,14 @@ async function createItem(formData: FormData) {
   const isAvailable = formData.get("is_available") === "on";
   const file = formData.get("image") as File | null;
 
-  if (!categoryId || !name) {
-    redirectWith("/admin/items", "error", "Categoria e nome do item sao obrigatorios.");
-  }
-
-  const { data: category, error: categoryError } = await supabase
-    .from("categories")
-    .select("id")
-    .eq("id", categoryId)
-    .maybeSingle();
-
-  if (categoryError || !category) {
-    redirectWith("/admin/items", "error", "Categoria selecionada nao existe.");
-  }
-
-  const imageValidationError = validateImage(file);
-  if (imageValidationError) {
-    redirectWith("/admin/items", "error", imageValidationError);
-  }
+  if (!categoryId || !name) return;
 
   let imagePath: string | null = null;
   if (file && file.size > 0) {
-    try {
-      imagePath = await uploadMenuImage(file);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Erro ao enviar imagem.";
-      redirectWith("/admin/items", "error", message);
-    }
+    imagePath = await uploadMenuImage(file);
   }
 
-  const { error } = await supabase.from("items").insert({
+  await supabase.from("items").insert({
     category_id: categoryId,
     name,
     slug: toSlug(name),
@@ -90,13 +36,8 @@ async function createItem(formData: FormData) {
     is_available: isAvailable,
   });
 
-  if (error) {
-    redirectWith("/admin/items", "error", `Falha ao criar item: ${error.message}`);
-  }
-
   revalidatePath("/admin/items");
   revalidatePath("/menu");
-  redirectWith("/admin/items", "success", "Item criado com sucesso.");
 }
 
 async function updateItem(formData: FormData) {
@@ -111,11 +52,9 @@ async function updateItem(formData: FormData) {
   const sortOrder = Number(formData.get("sort_order") || 0);
   const isAvailable = formData.get("is_available") === "on";
 
-  if (!id || !categoryId || !name) {
-    redirectWith("/admin/items", "error", "ID, categoria e nome do item sao obrigatorios.");
-  }
+  if (!id || !categoryId || !name) return;
 
-  const { error } = await supabase
+  await supabase
     .from("items")
     .update({
       category_id: categoryId,
@@ -128,13 +67,8 @@ async function updateItem(formData: FormData) {
     })
     .eq("id", id);
 
-  if (error) {
-    redirectWith("/admin/items", "error", `Falha ao salvar item: ${error.message}`);
-  }
-
   revalidatePath("/admin/items");
   revalidatePath("/menu");
-  redirectWith("/admin/items", "success", "Item atualizado com sucesso.");
 }
 
 async function deleteItem(formData: FormData) {
@@ -143,39 +77,20 @@ async function deleteItem(formData: FormData) {
   const id = String(formData.get("id") || "");
   const imagePath = String(formData.get("image_path") || "");
 
-  if (!id) {
-    redirectWith("/admin/items", "error", "ID do item e obrigatorio.");
-  }
+  if (!id) return;
 
-  const { error } = await supabase.from("items").delete().eq("id", id);
-
-  if (error) {
-    redirectWith("/admin/items", "error", `Falha ao remover item: ${error.message}`);
-  }
+  await supabase.from("items").delete().eq("id", id);
 
   if (imagePath) {
-    try {
-      await removeMenuImage(imagePath);
-    } catch {
-      redirectWith(
-        "/admin/items",
-        "error",
-        "Item removido, mas houve erro ao remover a imagem. Verifique o bucket menu-images.",
-      );
-    }
+    await removeMenuImage(imagePath);
   }
 
   revalidatePath("/admin/items");
   revalidatePath("/menu");
-  redirectWith("/admin/items", "success", "Item removido com sucesso.");
 }
 
-export default async function AdminItemsPage({ searchParams }: PageProps) {
+export default async function AdminItemsPage() {
   const { supabase } = await requireAdmin();
-  const params = await searchParams;
-  const type = getFirstParam(params.type);
-  const message = getFirstParam(params.message);
-
   const [{ data: categories }, { data: items }] = await Promise.all([
     supabase.from("categories").select("id,name").order("sort_order", { ascending: true }),
     supabase
@@ -187,22 +102,6 @@ export default async function AdminItemsPage({ searchParams }: PageProps) {
   return (
     <section>
       <PageHeader title="Itens" />
-
-      {message ? (
-        <p
-          className={`mb-4 rounded-lg p-3 text-sm ${
-            type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
-
-      {!categories || categories.length === 0 ? (
-        <p className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-          Cadastre pelo menos uma categoria antes de criar itens.
-        </p>
-      ) : null}
 
       <form action={createItem} className="mb-6 space-y-2 rounded-xl border bg-white p-4">
         <div className="grid gap-2 sm:grid-cols-2">
@@ -220,13 +119,7 @@ export default async function AdminItemsPage({ searchParams }: PageProps) {
         <textarea name="description" placeholder="Descricao" className="w-full rounded-lg border px-3 py-2 text-sm" />
 
         <div className="grid gap-2 sm:grid-cols-4">
-          <input
-            name="price"
-            type="number"
-            step="0.01"
-            placeholder="Preco opcional"
-            className="rounded-lg border px-3 py-2 text-sm"
-          />
+          <input name="price" type="number" step="0.01" placeholder="Preco opcional" className="rounded-lg border px-3 py-2 text-sm" />
           <input name="sort_order" type="number" defaultValue={0} className="rounded-lg border px-3 py-2 text-sm" />
           <input name="image" type="file" accept="image/*" className="rounded-lg border px-3 py-2 text-sm" />
           <label className="flex items-center gap-2 text-sm">
@@ -239,12 +132,6 @@ export default async function AdminItemsPage({ searchParams }: PageProps) {
           Criar item
         </button>
       </form>
-
-      {!items || items.length === 0 ? (
-        <p className="mb-4 rounded-lg border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-600">
-          Nenhum item cadastrado. Crie o primeiro item para aparecer no menu publico.
-        </p>
-      ) : null}
 
       <div className="space-y-3">
         {(items || []).map((item) => (

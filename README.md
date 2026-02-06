@@ -50,4 +50,3 @@ O cliente administra o conteudo em painel protegido, com controle de categorias,
 - Especificacao do produto: `docs/project-spec.md`
 - Workflow de versionamento: `docs/git-workflow.md`
 - Catalogo de commits: `docs/commit-message-catalog.md`
-- Checklist de go-live: `docs/go-live-checklist.md`
