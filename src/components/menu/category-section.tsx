@@ -12,9 +12,12 @@ export default function CategorySection({ category, showUnavailableItems }: Prop
     : category.items.filter((item) => item.is_available);
 
   return (
-    <section id={category.slug} className="space-y-3 scroll-mt-20">
-      <header>
-        <h2 className="text-lg font-bold text-zinc-900">{category.name}</h2>
+    <section id={category.slug} className="scroll-mt-24">
+      <header className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-black tracking-tight text-zinc-900">{category.name}</h2>
+        <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600">
+          {visibleItems.length} item(ns)
+        </span>
       </header>
 
       <div className="space-y-2">
