@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { getMenuImageUrl } from "@/lib/supabase/storage";
+import { formatEurCurrency } from "@/lib/utils/currency";
 import type { MenuItem } from "@/types/db";
 
 type Props = {
@@ -28,7 +29,7 @@ export default function ItemCard({ item, showUnavailableBadge }: Props) {
             <h3 className="text-sm font-bold text-zinc-900">{item.name}</h3>
             {item.price !== null ? (
               <span className="rounded-full bg-zinc-100 px-2 py-1 text-xs font-bold text-zinc-900">
-                R$ {Number(item.price).toFixed(2)}
+                {formatEurCurrency(Number(item.price))}
               </span>
             ) : null}
           </div>

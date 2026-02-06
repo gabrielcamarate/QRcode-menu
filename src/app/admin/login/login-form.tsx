@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/browser";
 
@@ -42,8 +43,16 @@ export default function LoginForm({ notAuthorized }: Props) {
   }
 
   return (
-    <section className="mx-auto mt-12 max-w-md rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <h1 className="text-xl font-bold">Login Admin</h1>
+    <section className="mx-auto mt-12 max-w-md rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">Admin</p>
+          <h1 className="text-2xl font-black tracking-tight text-zinc-900">Login</h1>
+        </div>
+        <Link href="/menu" className="rounded-full border border-zinc-300 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50">
+          Ver menu
+        </Link>
+      </div>
       <p className="mt-1 text-sm text-zinc-600">Entre com email e senha do painel administrativo.</p>
 
       {notAuthorized ? (
@@ -54,7 +63,7 @@ export default function LoginForm({ notAuthorized }: Props) {
 
       <form className="mt-5 space-y-3" onSubmit={handleSubmit}>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Email</span>
+          <span className="mb-1 block font-medium text-zinc-700">Email</span>
           <input
             type="email"
             name="email"
@@ -64,7 +73,7 @@ export default function LoginForm({ notAuthorized }: Props) {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Senha</span>
+          <span className="mb-1 block font-medium text-zinc-700">Senha</span>
           <input
             type="password"
             name="password"

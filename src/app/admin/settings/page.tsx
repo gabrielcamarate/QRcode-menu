@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import PageHeader from "@/components/admin/page-header";
+import FeedbackBanner from "@/components/admin/feedback-banner";
 import { requireAdmin } from "@/lib/supabase/admin-guard";
 
 export const dynamic = "force-dynamic";
@@ -62,21 +63,13 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
 
   return (
     <section>
-      <PageHeader title="Configuracoes" />
+      <PageHeader title="Configuracoes" description="Ajustes globais de exibicao do menu publico." />
 
-      {message ? (
-        <p
-          className={`mb-4 rounded-lg p-3 text-sm ${
-            type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      <FeedbackBanner type={type} message={message} />
 
-      <form action={updateSettings} className="space-y-3 rounded-xl border bg-white p-4">
+      <form action={updateSettings} className="space-y-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Nome do restaurante</span>
+          <span className="mb-1 block font-medium text-zinc-700">Nome do restaurante</span>
           <input
             name="restaurant_name"
             required
@@ -86,7 +79,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
         </label>
 
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Cor primaria (hex, opcional)</span>
+          <span className="mb-1 block font-medium text-zinc-700">Cor primaria (hex, opcional)</span>
           <input
             name="primary_color"
             defaultValue={settings?.primary_color || ""}
@@ -95,7 +88,7 @@ export default async function AdminSettingsPage({ searchParams }: PageProps) {
           />
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm font-medium text-zinc-700">
           <input type="checkbox" name="show_unavailable_items" defaultChecked={settings?.show_unavailable_items ?? true} />
           Mostrar itens indisponiveis com selo
         </label>
