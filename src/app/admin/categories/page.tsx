@@ -1,15 +1,26 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/supabase/admin-guard";
-import { removeMenuImage } from "@/lib/supabase/storage";
+import { getMenuImageUrl, removeMenuImage } from "@/lib/supabase/storage";
 import { toSlug } from "@/lib/utils/slug";
 import PageHeader from "@/components/admin/page-header";
 import CategoryDeleteModal from "@/components/admin/category-delete-modal";
+import FeedbackBanner from "@/components/admin/feedback-banner";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type CategoryItemPreview = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  is_available: boolean;
+  image_path: string | null;
 };
 
 function getFirstParam(value: string | string[] | undefined) {
@@ -33,52 +44,28 @@ async function createCategory(formData: FormData) {
     redirectWith("/admin/categories", "error", "Nome da categoria e obrigatorio.");
   }
 
-  const { error } = await supabase.from("categories").insert({
-    name,
-    slug: toSlug(name),
-    sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
-    is_active: isActive,
-  });
-
-  if (error) {
-    redirectWith("/admin/categories", "error", `Falha ao criar categoria: ${error.message}`);
-  }
-
-  revalidatePath("/admin/categories");
-  revalidatePath("/menu");
-  redirectWith("/admin/categories", "success", "Categoria criada com sucesso.");
-}
-
-async function updateCategory(formData: FormData) {
-  "use server";
-  const { supabase } = await requireAdmin();
-
-  const id = String(formData.get("id") || "");
-  const name = String(formData.get("name") || "").trim();
-  const sortOrder = Number(formData.get("sort_order") || 0);
-  const isActive = formData.get("is_active") === "on";
-
-  if (!id || !name) {
-    redirectWith("/admin/categories", "error", "ID e nome da categoria sao obrigatorios.");
-  }
-
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("categories")
-    .update({
+    .insert({
       name,
       slug: toSlug(name),
       sort_order: Number.isFinite(sortOrder) ? sortOrder : 0,
       is_active: isActive,
     })
-    .eq("id", id);
+    .select("id")
+    .single();
 
-  if (error) {
-    redirectWith("/admin/categories", "error", `Falha ao salvar categoria: ${error.message}`);
+  if (error || !data) {
+    const message = error?.message || "Retorno invalido ao criar categoria.";
+    redirectWith("/admin/categories", "error", `Falha ao criar categoria: ${message}`);
+    return;
   }
+  const categoryId = data.id;
 
   revalidatePath("/admin/categories");
+  revalidatePath("/admin/items");
   revalidatePath("/menu");
-  redirectWith("/admin/categories", "success", "Categoria atualizada com sucesso.");
+  redirect(`/admin/categories/${categoryId}?type=success&message=Categoria%20criada%20com%20sucesso.`);
 }
 
 async function deleteCategory(formData: FormData) {
@@ -109,9 +96,7 @@ async function deleteCategory(formData: FormData) {
       if (!key.startsWith("transfer_to_")) continue;
       const itemId = key.replace("transfer_to_", "");
       const targetCategoryId = String(value || "");
-      if (itemId && targetCategoryId) {
-        transferMap.set(itemId, targetCategoryId);
-      }
+      if (itemId && targetCategoryId) transferMap.set(itemId, targetCategoryId);
     }
 
     const validItemIds = new Set(items.map((item) => item.id));
@@ -125,11 +110,7 @@ async function deleteCategory(formData: FormData) {
         .in("id", targetCategoryIds);
 
       if (targetCategoriesError) {
-        redirectWith(
-          "/admin/categories",
-          "error",
-          `Falha ao validar categorias de destino: ${targetCategoriesError.message}`,
-        );
+        redirectWith("/admin/categories", "error", `Falha ao validar categorias de destino: ${targetCategoriesError.message}`);
       }
 
       const allowedTargets = new Set((targetCategories || []).map((category) => category.id));
@@ -211,8 +192,32 @@ async function deleteCategory(formData: FormData) {
   }
 
   revalidatePath("/admin/categories");
+  revalidatePath("/admin/items");
   revalidatePath("/menu");
   redirectWith("/admin/categories", "success", "Categoria removida com sucesso.");
+}
+
+async function toggleCategoryStatus(formData: FormData) {
+  "use server";
+  const { supabase } = await requireAdmin();
+
+  const id = String(formData.get("id") || "");
+  const current = String(formData.get("current") || "false") === "true";
+
+  if (!id) {
+    redirectWith("/admin/categories", "error", "ID da categoria e obrigatorio.");
+  }
+
+  const { error } = await supabase.from("categories").update({ is_active: !current }).eq("id", id);
+
+  if (error) {
+    redirectWith("/admin/categories", "error", `Falha ao alterar status: ${error.message}`);
+  }
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/admin/items");
+  revalidatePath("/menu");
+  redirectWith("/admin/categories", "success", `Categoria ${current ? "desativada" : "ativada"} com sucesso.`);
 }
 
 export default async function AdminCategoriesPage({ searchParams }: PageProps) {
@@ -225,96 +230,120 @@ export default async function AdminCategoriesPage({ searchParams }: PageProps) {
     supabase.from("categories").select("id,name,slug,sort_order,is_active").order("sort_order", { ascending: true }),
     supabase
       .from("items")
-      .select("id,name,description,price,is_available,category_id")
+      .select("id,name,description,price,is_available,category_id,image_path")
       .order("sort_order", { ascending: true }),
   ]);
 
-  const itemsByCategory = (items || []).reduce<
-    Record<string, { id: string; name: string; description: string | null; price: number | null; is_available: boolean }[]>
-  >((acc, item) => {
-    if (!acc[item.category_id]) {
-      acc[item.category_id] = [];
-    }
+  const itemsByCategory = (items || []).reduce<Record<string, CategoryItemPreview[]>>((acc, item) => {
+    if (!acc[item.category_id]) acc[item.category_id] = [];
+
     acc[item.category_id].push({
       id: item.id,
       name: item.name,
       description: item.description,
       price: item.price,
       is_available: item.is_available,
+      image_path: item.image_path,
     });
+
     return acc;
   }, {});
 
   return (
     <section>
-      <PageHeader title="Categorias" />
+      <PageHeader title="Categorias" description="Selecione uma categoria para gerir os itens dentro dela." />
 
-      {message ? (
-        <p
-          className={`mb-4 rounded-lg p-3 text-sm ${
-            type === "success" ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
-          }`}
-        >
-          {message}
-        </p>
-      ) : null}
+      <FeedbackBanner type={type} message={message} />
 
-      <form action={createCategory} className="mb-6 grid gap-2 rounded-xl border bg-white p-4 sm:grid-cols-4">
-        <input name="name" required placeholder="Nome da categoria" className="rounded-lg border px-3 py-2 text-sm" />
-        <input
-          name="sort_order"
-          type="number"
-          defaultValue={0}
-          placeholder="Ordem"
-          className="rounded-lg border px-3 py-2 text-sm"
-        />
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" name="is_active" defaultChecked />
-          Ativa
-        </label>
-        <button type="submit" className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white">
-          Criar
-        </button>
+      <form action={createCategory} className="mb-6 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+        <p className="mb-3 text-sm font-semibold text-zinc-800">Nova categoria</p>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-zinc-700">Nome</span>
+            <input name="name" required placeholder="Ex.: Entradas" className="w-full rounded-lg border px-3 py-2 text-sm" />
+          </label>
+          <label className="text-sm">
+            <span className="mb-1 block font-medium text-zinc-700">Ordem</span>
+            <input name="sort_order" type="number" defaultValue={0} className="w-full rounded-lg border px-3 py-2 text-sm" />
+          </label>
+          <label className="flex items-center gap-2 self-end text-sm font-medium text-zinc-700">
+            <input type="checkbox" name="is_active" defaultChecked />
+            Ativa
+          </label>
+          <button type="submit" className="self-end rounded-lg bg-zinc-900 px-4 py-2 text-sm font-semibold text-white">
+            Criar categoria
+          </button>
+        </div>
       </form>
 
       {!categories || categories.length === 0 ? (
         <p className="rounded-lg border border-dashed border-zinc-300 bg-white p-4 text-sm text-zinc-600">
           Nenhuma categoria cadastrada. Crie a primeira categoria para iniciar o cardapio.
         </p>
-      ) : null}
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {(categories || []).map((category) => {
+            const categoryItems = itemsByCategory[category.id] || [];
+            const cover = categoryItems.find((item) => item.image_path)?.image_path || null;
 
-      <div className="space-y-3">
-        {(categories || []).map((category) => (
-          <div key={category.id} className="grid gap-2 rounded-xl border bg-white p-4 sm:grid-cols-5">
-            <form action={updateCategory} className="contents">
-              <input type="hidden" name="id" value={category.id} />
-              <input name="name" defaultValue={category.name} className="rounded-lg border px-3 py-2 text-sm" />
-              <input
-                name="sort_order"
-                type="number"
-                defaultValue={category.sort_order}
-                className="rounded-lg border px-3 py-2 text-sm"
-              />
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="is_active" defaultChecked={category.is_active} />
-                Ativa
-              </label>
-              <button type="submit" className="rounded-lg border px-4 py-2 text-sm hover:bg-zinc-50">
-                Salvar
-              </button>
-            </form>
-            <CategoryDeleteModal
-              categoryId={category.id}
-              categoryName={category.name}
-              items={itemsByCategory[category.id] || []}
-              transferOptions={(categories || [])
-                .filter((option) => option.id !== category.id)
-                .map((option) => ({ id: option.id, name: option.name }))}
-              deleteAction={deleteCategory}
-            />
-          </div>
-        ))}
-      </div>
+            return (
+              <article key={category.id} className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+                <div className="h-28 bg-zinc-100" style={cover ? { background: `url(${getMenuImageUrl(cover)}) center/cover` } : undefined} />
+                <div className="p-4">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <h2 className="text-lg font-black tracking-tight text-zinc-900">{category.name}</h2>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                        category.is_active ? "bg-emerald-100 text-emerald-800" : "bg-zinc-200 text-zinc-700"
+                      }`}
+                    >
+                      {category.is_active ? "Ativa" : "Inativa"}
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-zinc-600">{categoryItems.length} item(ns)</p>
+
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/admin/categories/${category.id}`}
+                      className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                    >
+                      Abrir categoria
+                    </Link>
+                    <form action={toggleCategoryStatus}>
+                      <input type="hidden" name="id" value={category.id} />
+                      <input type="hidden" name="current" value={String(category.is_active)} />
+                      <button
+                        type="submit"
+                        className="rounded-lg border border-zinc-300 px-3 py-2 text-sm font-semibold text-zinc-700 hover:bg-zinc-50"
+                      >
+                        {category.is_active ? "Desativar" : "Ativar"}
+                      </button>
+                    </form>
+
+                    <CategoryDeleteModal
+                      categoryId={category.id}
+                      categoryName={category.name}
+                      items={categoryItems.map((item) => ({
+                        id: item.id,
+                        name: item.name,
+                        description: item.description,
+                        price: item.price,
+                        is_available: item.is_available,
+                      }))}
+                      transferOptions={(categories || [])
+                        .filter((option) => option.id !== category.id)
+                        .map((option) => ({ id: option.id, name: option.name }))}
+                      deleteAction={deleteCategory}
+                    />
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }
