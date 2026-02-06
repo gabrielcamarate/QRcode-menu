@@ -105,34 +105,6 @@ Rollback:
 7. Aguardar review e checks.
 8. Merge por squash.
 
-## Como acionar o agente para versionamento
-Use prompts diretos com a skill `git-workflow-guard`.
-
-### Fluxo completo (recomendado)
-```txt
-use git-workflow-guard; faça o versionamento completo desta tarefa:
-1) garanta branch fora da main no padrão tipo/slug-curto
-2) rode pnpm lint e pnpm build
-3) gere commit no padrão bilíngue (english / pt-BR)
-4) faça push
-5) abra PR para main com resumo, validação, risco e rollback
-```
-
-### Só commit
-```txt
-use git-workflow-guard; faça o commit desta alteração com Conventional Commit bilíngue (english / pt-BR), sem push
-```
-
-### Commit + push
-```txt
-use git-workflow-guard; faça commit + push desta tarefa seguindo o padrão oficial de branch e commit bilíngue
-```
-
-### Abrir PR
-```txt
-use git-workflow-guard; abra o PR da branch atual para main com template curto e evidências de lint/build
-```
-
 ## Gate minimo de PR
 - 1 aprovacao obrigatoria.
 - Checks obrigatorios: `lint` e `build`.
