@@ -52,22 +52,29 @@
 
 ### Politica de commit
 - Commits devem seguir Conventional Commits.
-- Formato: `tipo(escopo-opcional): resumo`.
+- Formato do assunto (titulo) em ingles: `tipo(escopo-opcional): english summary`.
 - Tipos permitidos: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`.
 - Mensagem curta, no imperativo e sem ponto final.
-- O resumo do commit deve ser bilingüe (ingles + pt-BR), no mesmo assunto.
-- Formato recomendado do assunto:
-  - `tipo(escopo): english summary / resumo em pt-BR`
-- Exemplo:
-  - `fix(auth): handle expired session redirect / trata redirecionamento de sessao expirada`
+- O commit deve ser bilingüe em blocos:
+  1. Bloco completo em ingles.
+  2. Separador `---`.
+  3. Bloco completo em pt-BR.
+- Modelo recomendado:
+  - Subject: `tipo(escopo): english summary`
+  - Body (EN): Context, Changes, Validation, Risk, Rollback
+  - `---`
+  - Body (PT-BR): Contexto, Alteracoes, Validacao, Risco, Rollback
+- Exemplo de subject:
+  - `fix(auth): handle expired session redirect`
 
 ### Politica de push e PR
 - Push direto em `main` e proibido.
 - Todo push deve ir para branch de trabalho e abrir PR para `main`.
 - PR deve incluir:
-  - resumo do problema/solucao
+  - bloco completo em ingles (title, description, changes, validation, risk, rollback)
+  - separador `---`
+  - bloco completo equivalente em pt-BR
   - evidencias de validacao (`pnpm lint`, `pnpm build`)
-  - risco e rollback curto
 
 ### Politica de merge
 - Estrategia oficial: `Squash merge`.

@@ -13,9 +13,13 @@ Use this skill for any request related to git versioning flow: branch, commit, p
 3. Use branch names as `tipo/slug-curto` where tipo is one of:
    - `feat`, `fix`, `chore`, `docs`, `refactor`, `hotfix`
 4. Use Conventional Commits:
-   - `tipo(escopo-opcional): english summary / resumo em pt-BR`
+   - Subject (EN): `tipo(escopo-opcional): english summary`
    - Allowed types: `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`.
-   - Example: `feat(menu): add sticky category tabs / adiciona abas fixas de categoria`
+   - Example: `feat(menu): add sticky category tabs`
+   - Commit body must be bilingual in blocks:
+     1) full English block
+     2) separator `---`
+     3) full pt-BR block
 5. Run quality gates before commit/push:
    - `pnpm lint`
    - `pnpm build`
@@ -28,7 +32,7 @@ Use this skill for any request related to git versioning flow: branch, commit, p
 2. If on `main`, create branch: `git checkout -b <tipo/slug-curto>`.
 3. Review changed files and ensure scope is coherent.
 4. Run quality gates (`pnpm lint`, `pnpm build`).
-5. Stage and commit with bilingual Conventional Commit message (english + pt-BR in the same subject).
+5. Stage and commit with bilingual blocks (EN first, then `---`, then pt-BR).
 6. Push branch with upstream (`git push -u origin <branch>`).
 7. Open PR with short template:
    - Context/problem
@@ -45,6 +49,16 @@ Use this skill for any request related to git versioning flow: branch, commit, p
   - [ ] `pnpm lint`
   - [ ] `pnpm build`
 - Risk:
+- Rollback:
+
+---
+
+- Contexto:
+- Alteracoes:
+- Validacao:
+  - [ ] `pnpm lint`
+  - [ ] `pnpm build`
+- Risco:
 - Rollback:
 
 ## Hotfix rule

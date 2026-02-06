@@ -30,15 +30,70 @@ Exemplos:
 - `chore/ajuste-rls`
 
 ## Convencao de commit
-Formato: `tipo(escopo-opcional): english summary / resumo em pt-BR`
+Formato do subject: `tipo(escopo-opcional): english summary`
 
 Tipos permitidos:
 - `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `perf`, `ci`, `build`
 
 Exemplos:
-- `feat(menu): add category sections / adiciona secoes por categoria`
-- `fix(auth): fix admin login redirect / corrige redirecionamento do login admin`
-- `chore(ci): adjust build pipeline / ajusta pipeline de build`
+- `feat(menu): add category sections`
+- `fix(auth): fix admin login redirect`
+- `chore(ci): adjust build pipeline`
+
+### Estrutura obrigatoria do commit (bilingue em blocos)
+1. Subject em ingles (Conventional Commit).
+2. Body completo em ingles:
+   - Context
+   - Changes
+   - Validation
+   - Risk
+   - Rollback
+3. Separador: `---`
+4. Body completo em pt-BR:
+   - Contexto
+   - Alteracoes
+   - Validacao
+   - Risco
+   - Rollback
+
+Exemplo resumido:
+```txt
+feat(menu): add category sections
+
+Context:
+- Improve menu navigation.
+
+Changes:
+- Add category section anchors.
+
+Validation:
+- pnpm lint
+- pnpm build
+
+Risk:
+- Low.
+
+Rollback:
+- Revert this commit.
+
+---
+
+Contexto:
+- Melhora navegacao do menu.
+
+Alteracoes:
+- Adiciona ancoras de secoes de categoria.
+
+Validacao:
+- pnpm lint
+- pnpm build
+
+Risco:
+- Baixo.
+
+Rollback:
+- Reverter este commit.
+```
 
 ## Fluxo recomendado
 1. Criar branch a partir da `main` atualizada.
